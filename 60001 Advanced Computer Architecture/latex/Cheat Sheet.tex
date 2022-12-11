@@ -1,6 +1,6 @@
 
 \documentclass[a4paper, 5pt, twocolumn]{article}
-\usepackage[top = 1.cm, left=1.cm, right=1cm, bottom = 1.cm]{geometry}
+\usepackage[top = 1.5cm, left=1.5cm, right=1cm, bottom = 1.cm]{geometry}
 \usepackage[utf8]{inputenc}               
 \usepackage[english]{babel}    
 \usepackage{lipsum}
@@ -281,5 +281,163 @@ be there, assuming there are no erroneous jumps. \\
 \item
   If threads in a warp diverge, bad for spatial locality
 \end{itemize}
+\section{Sonic Boom}
+\hypertarget{instructionfetchstage}{%
+\subsection{Instruction Fetch Stage}\label{instructionfetchstage}}
 
+Additional pipeline stage is added after the frontend-decoders shift the decoded instructions into a dense fetch packet:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Needed to pass into the backend
+	\item Provides an interface - decoder always gets 4 instructions, even if 4-8 instructions are issued
+	\item Overflow of instructions (fetched instructions - 4) are stored in the fetch buffer \\
+\end{itemize}
+
+Next Line Predictor (micro-BTB):
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Small, fully-associative cache that stores branch address and target address
+	\item Can be improved with [[Branch Folding]]
+	\item Improves fetch throughput on small-bodied loops (JMP to top predicted) \\
+\end{itemize}
+
+Repair mechanisms - restores predictor state after misspeculation:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Loop-predictor and RAS are snapshotted and repaired on mispredict
+	\item Maybe use a RAS pop shift register? \\
+\end{itemize}
+
+Superscalar branch resolution, with multiple branch resolution units:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+ \item Handles when multiple branches are in the same packet
+ \item Additional pipeline stage after WB to read the fetch-PC queue - a queue for PCs to fetch soon - and determine the target address for the oldest mispredicted branch from a vector of branch mispredictions
+ \item Allows for aggressive scheduling of branches - don't need to wait for a branch resolution unit to finish \\
+\end{itemize}
+
+TAGE:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item High accuracy for dense areas with many conditional branches
+	\item Provides bit vector of taken / not taken, each bit for each instruction in the fetch packet
+	\item Updated during commit stage \\
+\end{itemize}
+
+\hypertarget{Execute Stage}{%
+\subsection{Instruction Fetch Stage}\label{executestage}}
+
+SFB recorder:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Records difficult to predict branches into internal predicated microOps
+	\item Detects short-forwards and translates into set-flag and conditionally execute instructions
+	\item Set-flag writes outcome of branch to predicate register
+	\item Conditionally execute either
+	\item \begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+		\item True - Executes instruction and places into target register
+		\item False - Copies original value of (stale physical) destination register into physical destination register \\
+	\end{itemize}
+\end{itemize}
+
+\hypertarget{loadstorestage}{%
+\subsection{Instruction Fetch Stage}\label{loadstorestage}}
+
+Dual Ported L1 Data cache:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Two banks - for odd and even addresses (implemented as 1R1W SRAMs)
+	\item Good with load-heavy bursts
+	\item Can use [[Loads \& Stores]] - memory dependence prediction
+	\item Is a [[Non-Blocking Caches]] \\
+\end{itemize}
+
+Line-fill buffers:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Cache requests to populate the line-fill buffer
+	\item Allows for cache eviction and requests to happen in parallel
+	\item Flushed into L1 Dcache when evictions are complete
+	\item Misspeculated cache refills stay in line-fill buffers, which means they must be searched in parallel
+	\item Flushed on context switch?
+	\item Uses a next-line prefetcher - [[Hardware Prefetching]] - after a cache miss
+	\item Updates L1 Dcache during speculation window - if there are no cache evictions in queue \\
+\end{itemize}
+
+\hypertarget{sidechannelvulnerabilities}{%
+\subsection{Side Channel Vulnerabilities}\label{sidechannelvulnerabilities}}
+SonicBOOM vulnerabilities - speculative execution changes the microarchitectural state temporarily:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Spectre-v1: bypassing bounds checks
+	\item Spectre-v2: branch target injection
+	\item Spectre-v5: return stack buffer attack \\
+\end{itemize}
+
+Issues with Load / Store Unit:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item 3 cycle delay to allocate misses in the MSHRs and request data from L2
+	\item Loads are optimistically fired to use OoO execution \\
+\end{itemize}
+
+Attack methodology:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Attacker establish desired conditions
+	\item Trigger victim execution with invalid instruction
+	\item Victim loads secret into covert channel (data cache)
+	\item Processor resets pipeline by squashing and rolling back
+	\item Attacker probes data cache for information (flush + reload) \\
+\end{itemize}
+
+Bypassing Bounds Checks:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Mis-train conditional branch direction prediction
+	\item Trigger using a conditional branch \\
+\end{itemize}
+
+Branch Target Injection:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Mis-train BTB for branch target prediction
+	\item Trigger using a call to a mis-speculated target (malicious function)\\
+\end{itemize}
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Mis-train BTB for branch target prediction
+	\item Trigger using a call to a mis-speculated target (malicious function)\\
+\end{itemize}
+
+Return Stack Buffer Attack:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Craft malicious gadget after a call site
+	\item Trigger using a return, as exploiting RAS miss-match with software stack\\
+\end{itemize}
+
+RIDL (Line Buffers - MDS Attacks)\\
+
+\bf Mitigations:\\
+Speculative Taint Tracking:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Allow OoO execution
+	\item Destination of speculative load is marked as tainted in a hardware taint file
+	\item Subsequent loads that use tainted addresses activate data memory fencing for all loads in the LSQ (fence\_dmem).
+	\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+		\item This is detected at AGU (memaddrcalc)
+		\item All loads in LSQ - as we are in danger zone
+	\end{itemize}
+	\item Also notifies frontend to send out dispatch hazards (dis), forcing the pipeline to stall and the processor to run in order temporarily.
+	\item When fencing used, data cache refill is temporarily disabled and MSHRs are cleared until load is no longer speculative (and data is untainted)
+	\item Untaint when instruction is commitable
+	\item On misprediction, data in tainted registers is invalid
+\end{itemize}
+
+Retpolines:
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Use a direct branch to a function that evaluates the indirect address and places it in a register, using a call instruction
+	\item Ret back once evaluated
+	\item Removes need for target address speculation
+\end{itemize}
+
+Cache formula: log2(cache line size) = offset bits log2(cache size / no of ways * address bits) = index bits tag bits = address bits - offset bits - index bits
 \end{document}
