@@ -1,0 +1,285 @@
+
+\documentclass[a4paper, 5pt, twocolumn]{article}
+\usepackage[top = 1.cm, left=1.cm, right=1cm, bottom = 1.cm]{geometry}
+\usepackage[utf8]{inputenc}               
+\usepackage[english]{babel}    
+\usepackage{lipsum}
+\usepackage{makecell}
+\usepackage[pdfstartview=FitH]{hyperref}
+\usepackage{bookmark}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\begin{document}
+\setlength{\parindent}{0pt}
+\hypertarget{branch-prediction}{%
+\subsection{Branch Prediction}\label{branch-prediction}}
+
+Simple predictors re-learn faster Sophisticated predictors re-learn
+slower Selective predictors may choose faster learning predictors until
+better predictor \textbf{\emph{warms up.}} \\
+
+Branch Folding: Instead of just the branch target address in the
+{[}{[}Branch Target Buffer{]}{]}, store the entire target
+\emph{instruction}. \\
+
+This way, you can skip the Instruction Fetch stage for the next
+instruction, so the effective CPI for the branch is zero. \\
+
+Could stash target instruction for both taken and not-taken to reduce
+mispredicition delay. \\
+
+BTB is:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+ \item \textbf{\emph{Indexed}} with low-order PC address bits 
+ \item \textbf{\emph{Tagged}} with high-order PC address bits \\
+\end{itemize} 
+
+If a slower, direction predictor differs, re-steer: 
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Squash first prediction by re-writing PC 
+	\item Fetch from improved prediction \\
+\end{itemize} 
+
+Updating the branch predictor:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Can update BTB as \textbf{SOON} as branch outcome is known (before committing)
+	\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+		\item This means that later branches have correct BTB predictions. 
+	\end{itemize}
+	\item Update BTB after commit - just	in case of a branch misprediction. \\
+\end{itemize}
+
+\hypertarget{cache}{%
+\subsection{Cache}\label{cache}}
+
+Smaller caches -\textgreater{} Reduced hit time \\
+
+Way prediction - extra bits are kept in the cache to predict the way of
+the \emph{next} cache access. Means that you can access the correct set
+for the desired way first on a correct prediction, getting the
+performance benefit of direct-mapped caches (better hit time) and good
+hit rate with associativity. \\
+
+Multiple banks in L2 allows for {[}{[}Non-Blocking Caches{]}{]} to use
+hit-under miss on cache miss (can service cache hit at the same time) \\
+
+Early restart:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Processor can continue as soon as requested word arrives 
+	\item restart CPU as soon as the requested word of the block arrives. 
+	\item Request the missing word first (critical word first) - Useful in large blocks 
+	\item Divide cache line into sectors - each with its own validity bit. \\
+\end{itemize}
+
+Write buffers:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item {[}{[}Write Through{]}{]} and {[}{[}Write Back{]}{]} caches rely on write buffers, to contain all stores that must be sent to the next level of the memory hierarchy. 
+	\item -Coalescing write buffers - Merge adjacent writes into single entry
+	\item Write merging - Merges consecutive word writes to memory addresses to take up less space in the write buffer 
+	\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+		\item Reduces stalls, less space taken up in the write buffer 
+		\item Takes advantage of spatial locality (writing) \\
+	\end{itemize}
+\end{itemize}
+
+Hardware Prefetcing: Extra block fetched placed in a
+\textbf{\emph{stream buffer}}. After a cache miss, the stream buffer
+prefetches the \textbf{next} successive cache line. \\
+
+On future misses, check the head of the stream buffer: 
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item If a hit, allocate into cache and prefetch the next line for the stream buffer
+ 	\item If a miss, clear the stream buffer and start over. \\
+\end{itemize}
+Relies on having \textbf{extra memory bandwidth}.
+
+Have multiple stream buffers - because programs often make interleaved,
+sequential streams of accesses. \\
+
+Skewed-Associative Cache: Reduce conflict misses by using
+\emph{different} indices in each cache way. Hash the cache index and
+some tag bits (i.e.~XOR) As the indexes are pseudo random, conflict
+misses are reduced as they don't map to the same index anymore
+-\textgreater{} useful for loops. \\
+
+Costs:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Must have an address decoder per way 
+	\item Latency of hash function
+	\item Harder to implement LRU \\
+\end{itemize}
+
+\hypertarget{sidechannels}{%
+\subsection{Sidechannels}\label{sidechannels}}
+
+Evict and Time: 
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Let victim run 
+	\item Attacker evicts line of interest  
+	\item Let victim run again, measure difference in time to find if attacker affected it \\
+\end{itemize}
+Flush and Reload:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+ \item Attacker evicts line of interest 
+ \item Victim executes 
+ \item Attacker reloads evicted line 
+ \item Fast reload  
+ \item victim touched the line, cache tag was used 
+ \item Slow reload 
+ \item cache tag was not used by victim\\
+\end{itemize}
+Prime and Probe:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+ \item Attacker primes cache 
+ \item Victim executes, attacker times access to its own cache lines \\
+\end{itemize}
+\hypertarget{loads-stores}{%
+\subsection{Loads \& Stores}\label{loads-stores}}
+
+Need to \textbf{STALL} loads until all possibly aliasing store addresses
+are known. \\
+
+As loads and stores use \textbf{COMPUTED ADDRESSES}, they may not be
+known at issue time, so any store / load instruction could be a data
+dependence (RAW). Could wait as above, or:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+ \item Speculate whether it is or isn't 
+ \item then check for misprediction 
+ \item Add a fowarding predictor to improve this speculation \\
+\end{itemize}
+
+Allow a load to proceed \textbf{BEFORE} we know for sure if / which any
+prior uncommited store instruction writes to its address. \\
+
+Can use the idea of \textbf{store-wait} (Alpha 21264): 
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item Guess that ,there is no memory dependence 
+	\item Squash if there is, and mark the load instruction as \emph{store-wait} in the load unit 
+	\item Next time that load is needed, it will wait for all previous stores to complete \\
+\end{itemize}
+
+Can also use the idea of a store set to further improve this, so that
+you're not waiting on EVERY store. \\
+
+Store unit can mark entries as valid / speculative, so speculative
+instructions aren't stored in memory. \\
+
+\hypertarget{return-address-stack}{%
+\subsection{Return Address Stack}\label{return-address-stack}}
+
+After decode, the instruction is checked:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	 \item If JSR, add PC to RAS 
+	 \item If ret, pop RAS, prediction was correct \\
+\end{itemize}
+
+If the call stack is deeper than the RAS: 
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item RAS will be empty at some point 
+	\item stack overflow 
+	\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+		\item RAS prediction may be wrong: - Switching threads would change the stack pointer \\
+	\end{itemize}
+\end{itemize}
+
+Updating the RAS:
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+	\item On commit - might not have a prediction in time for addresses deeper in the stack. \\
+\end{itemize}
+
+If a conditional branch is mispredicted, and inside the taken version of
+that branch is a function call, then a return address is going to be
+pushed onto the stack. \\
+
+To mitigate this and optimise for loops - we can have a shift register
+that records \emph{prediction state}. \\
+
+On every prediction, every time we hit a JSR instruction, we increment
+this register and let it push a return address onto the stack. \\
+
+If we suffer a misprediction - we pop the RAS n times, where n is the
+value in this shift register, and we're back to the original state. \\
+
+BTB entries would be affected though -\textgreater{} we'd have entries
+for return addresses when they shouldn't be there. That's fine though -
+as we shouldn't get to those return addresses unless we were supposed to
+be there, assuming there are no erroneous jumps. \\
+
+\hypertarget{vector-instructions}{%
+\subsection{Vector Instructions:}\label{vector-instructions}}
+
+\begin{itemize} [topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+\item
+  Less fetching from instruction cache, but exploits parallelism
+\item
+  Lanes execute in parallel
+\item
+  Have vector predicate registers (512 bit wide - 1 bit per lane)
+\item
+  Zero masking - when predicate is false, register for lane set to 0
+\item
+  Masking - when predicate is false, register for lane retains old value
+\item
+  If trip count is not divisible by vector instruction, need additional
+  non-vector instruction to mop up
+\item
+  If arrays are potentially aliased or are data dependent, cannot use
+  vector instructions
+\item
+  Use `gather' instruction for indirect array indexing
+\item
+  If the alignment of the operand pointers is not known, need
+  instructions to align onto a 32 byte boundary
+\end{itemize}
+
+\hypertarget{cache-coherency}{%
+\subsection{Cache Coherency}\label{cache-coherency}}
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+\item
+  If reading:
+
+  \begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+  \item
+    If another cache has dirty or shared-dirty, get from cache using
+    bus-read
+  \item
+    They set to shared-dirty, you set to valid
+  \item
+    Else valid from memory
+  \end{itemize}
+\item
+  If writing:
+
+  \begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+  \item
+    No action if dirty
+  \item
+    if valid or shared-dirty, send invalidation on bus, set ours to
+    dirty
+  \item
+    On miss - line comes from owner, everyone else set to invalid
+  \end{itemize}
+\item
+  Cache controllers send out signals
+\item
+  duplicate tags in L1 to allow for parallel checks - or check in L2
+  with multilevel inclusion
+\end{itemize}
+
+\hypertarget{gpus}{%
+\subsection{GPUs}\label{gpus}}
+
+\begin{itemize}[topsep=0pt,itemsep=-1ex,partopsep=1ex,parsep=1ex]
+\item
+  SIMD but on multiple threads
+\item
+  Each SM uses FGMT on each warp (thread on CPU)
+\item
+  Each warp using 32-bit wide SIMD vector instruction for lanes (in
+  lockstep)
+\item
+  If threads in a warp diverge, bad for spatial locality
+\end{itemize}
+
+\end{document}

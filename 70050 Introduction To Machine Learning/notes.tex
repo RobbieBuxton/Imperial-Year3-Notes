@@ -40,7 +40,7 @@ Confusion Matrix \\ \\
  \hline
  \thead{Class 1 \\ Actual} &  \thead{\bf TP \\ True Positive} & \thead{\bf FN \\False Negative} \\
  \hline
- \thead{Class 2 \\ Actual} &  \thead{\bf FP \\ False Positive} & \thead{\bf TN \\ False Negative} \\
+ \thead{Class 2 \\ Actual} &  \thead{\bf FP \\ False Positive} & \thead{\bf TN \\ True Negative} \\
  \hline
 \end{tabular} \\
 Accuracy = $\frac{TP + TN}{TP + TN + FP + FN}$ \\ 
@@ -66,14 +66,31 @@ $\frac{\delta \textrm{Loss}}{\delta X} = \frac{\delta \textrm{Loss}}{\delta Z} \
 $\frac{\delta \textrm{Loss}}{\delta X} = \frac{\delta \textrm{Loss}}{\delta Z} \cdot W^T$ \\
 $\frac{\delta \textrm{Loss}}{\delta W} = X^T \cdot \frac{\delta \textrm{Loss}}{\delta Z}$ \\
 $\frac{\delta \textrm{Loss}}{\delta b} = 1^T \cdot \frac{\delta \textrm{Loss}}{\delta Z}$ \\
-$\frac{\delta \textrm{Loss}}{\delta b} = \frac{\delta \textrm{Loss}}{\delta A} \circ g'(Z)$ \\
-where $A = g(Z)$
+$\frac{\delta \textrm{Loss}}{\delta Z} = \frac{\delta \textrm{Loss}}{\delta A} \circ g'(Z)$ \\
+where $A = g(Z)$ \\ \\ Regularisation \\
+$L1: J(\theta) = \textit{Loss}(y,\hat y) + \lambda \sum_w w^2$ \\
+$w \leftarrow w - \alpha(\frac{\delta \textit{Loss}}{\delta w} + 2 \lambda w)$ \\
+$L2: J(\theta) = \textit{Loss}(y,\hat y) + \lambda \sum_w |w|$ \\
+$w \leftarrow w - \alpha(\frac{\delta \textit{Loss}}{\delta w} + 2 \sin w)$ \\
+Dropout: drop $50\%$ of Activation \\ \\
+Data normalisation\\
+Min-Max: $X' = a + \frac{(X -X_{min})(b-a)}{X_{max}-X_{min}}$ \\
+Standardization: $X' = \frac{X-\mu}{\sigma }$
 \section{Unsupervised Learning} 
 K-means \\
 \includegraphics[scale=0.5]{k-means.png} \\
 GMM-EM \\
-\includegraphics[scale=0.5]{GMM-EM.png} \\
+\includegraphics[scale=0.5]{GMM-EM.png} \\ \\
+Mixture Models: \\$p(x) = \sum^K_{k=1} \pi_k p_k(x)$ \\
+Gaussian Mixture models: \\$p(x|\theta) = \sum^K_{k=1} \pi_k \mathcal{N}(x|\mu_k, \sum_k)$
 \section{Evolutionary Algorithms}
-\lipsum[5]
 
+\section{General}
+Overfitting
+\begin{enumerate}
+	\item high dimensionality $\rightarrow$  overfitting
+	\item Stop for decision trees (Pruning, early stopping (max depth))
+	\item General Solutions (more data, stop earlier and change complexity (use validation set to test))
+	\item Neural networks (dropout/regularisation/normalisation)
+\end{enumerate}
 \end{document}
